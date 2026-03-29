@@ -12,9 +12,10 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background: #1a1a1a;
-            color: #fff;
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #1a120b 0%, #2d1f13 50%, #1a120b 100%);
+            background-attachment: fixed;
+            color: #e8dcc8;
             padding: 10px;
             min-height: 100vh;
         }
@@ -25,9 +26,14 @@
         }
 
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             margin-bottom: 10px;
-            color: #f0d080;
+            background: linear-gradient(45deg, #b8860b, #ffd700, #b8860b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            letter-spacing: 1px;
         }
 
         .controls {
@@ -39,21 +45,29 @@
 
         button {
             padding: 8px 16px;
-            background: #4a6fa5;
-            color: white;
-            border: none;
-            border-radius: 4px;
+            background: linear-gradient(to bottom, #8b6914 0%, #6b5310 100%);
+            color: #f8f4e3;
+            border: 2px solid #4a3a0c;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
+            font-family: 'Georgia', serif;
+            font-weight: bold;
+            transition: all 0.2s;
         }
 
-        button:hover {
-            background: #5a7fb5;
+        button:hover:not(:disabled) {
+            background: linear-gradient(to bottom, #9c7820 0%, #7c6015 100%);
+            border-color: #5a4612;
+            box-shadow: 0 0 10px rgba(184, 134, 11, 0.4);
         }
 
         button:disabled {
-            background: #333;
+            background: #3a2f1a;
+            border-color: #2a2212;
+            color: #776b5a;
             cursor: not-allowed;
+            box-shadow: none;
         }
 
         /* Game Areas */
@@ -62,21 +76,25 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
         .area {
-            border: 2px solid #555;
+            border: 3px solid #5c4033;
             border-radius: 8px;
-            padding: 10px;
-            background: #2a2a2a;
+            padding: 12px;
+            background: linear-gradient(to bottom right, #2c1e13 0%, #3a291a 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.5);
         }
 
         .area-title {
-            font-size: 0.8rem;
-            color: #aaa;
-            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #d4af37;
+            margin-bottom: 10px;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+            padding-bottom: 4px;
         }
 
         /* Torch Area */
@@ -92,7 +110,7 @@
         #dungeon-area {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px;
         }
 
         .delve-row, .retreat-row {
@@ -100,29 +118,35 @@
             gap: 8px;
             flex-wrap: wrap;
             min-height: 70px;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
         }
 
         .turn-stack {
             width: 50px;
             height: 70px;
-            border: 1px solid #666;
-            border-radius: 4px;
+            border: 2px solid #5c4033;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #333;
+            background: linear-gradient(to bottom, #3a291a 0%, #2c1e13 100%);
             cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            transition: all 0.2s;
         }
 
         .turn-stack:hover {
-            background: #404040;
+            background: linear-gradient(to bottom, #4a3322 0%, #3a291a 100%);
+            border-color: #6b5040;
         }
 
         /* Bottom Row */
         .bottom-row {
             display: grid;
             grid-template-columns: 1fr 1fr 2fr;
-            gap: 10px;
+            gap: 12px;
         }
 
         @media (max-width: 768px) {
@@ -148,47 +172,54 @@
             min-height: 70px;
         }
 
-        /* Card Styles - Minimal */
+        /* Card Styles - Themed */
         .card {
             width: 45px;
             height: 63px;
-            border: 1px solid #333;
-            border-radius: 4px;
+            border: 2px solid #8b7355;
+            border-radius: 6px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 2px;
+            padding: 3px;
             font-weight: bold;
             font-size: 0.8rem;
             cursor: pointer;
-            background: white;
-            color: black;
+            background: linear-gradient(to bottom right, #f5f1e8 0%, #e8dcc8 100%);
+            color: #1a1a1a;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
         }
 
         .card.facedown {
-            background: #4a6fa5;
+            background: linear-gradient(135deg, #2c1e13 0%, #3a291a 50%, #2c1e13 100%);
+            background-image:
+                repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0px, rgba(255, 255, 255, 0.03) 4px, transparent 4px, transparent 8px);
             cursor: default;
+            border-color: #5c4033;
         }
 
         .card.spades, .card.clubs {
-            color: black;
+            color: #000000;
         }
 
         .card.hearts, .card.diamonds {
-            color: red;
+            color: #8b0000;
         }
 
         .card .rank {
             text-align: left;
+            line-height: 1;
         }
 
         .card .suit {
             text-align: center;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
+            line-height: 1;
         }
 
         .card .corner {
             text-align: right;
+            line-height: 1;
         }
 
         .card-in-hand {
@@ -201,44 +232,50 @@
         }
 
         .card-in-hand .suit {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
         }
 
         .card-playable {
-            outline: 3px solid #4caf50;
-            box-shadow: 0 0 10px #4caf50;
+            outline: 3px solid #d4af37;
+            box-shadow: 0 0 12px rgba(212, 175, 55, 0.6);
+            transform: translateY(-2px);
         }
 
-        /* HP card - flipped is facedown */
+        /* HP card - flipped is damaged */
         .hp-card {
             width: 25px;
             height: 35px;
-            border: 1px solid #333;
-            border-radius: 2px;
-            background: white;
+            border: 1px solid #5c4033;
+            border-radius: 3px;
+            background: linear-gradient(to bottom, #f5f1e8 0%, #e8dcc8 100%);
         }
 
         .hp-card.flipped {
-            background: #8b0000;
+            background: linear-gradient(to bottom, #5a0000 0%, #3a0000 100%);
+            border-color: #8b0000;
         }
 
         /* Status Area */
         #status-area {
             margin-top: 15px;
             padding: 15px;
-            background: #222;
+            background: linear-gradient(to right, rgba(44, 30, 19, 0.9) 0%, rgba(58, 41, 26, 0.9) 100%);
+            border: 2px solid #5c4033;
             border-radius: 8px;
             text-align: center;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
         #game-message {
             font-size: 1.1rem;
             margin-bottom: 10px;
+            color: #f0e6d2;
         }
 
         #score-display {
             font-size: 1rem;
-            color: #f0d080;
+            color: #d4af37;
+            font-weight: bold;
         }
 
         /* Game over overlay */
@@ -249,7 +286,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -260,15 +297,18 @@
         }
 
         .game-over-content {
-            background: #2a2a2a;
+            background: linear-gradient(to bottom right, #2c1e13 0%, #3a291a 100%);
+            border: 3px solid #5c4033;
             padding: 30px;
-            border-radius: 8px;
+            border-radius: 12px;
             text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
         }
 
         .game-over h2 {
-            color: #f0d080;
+            color: #d4af37;
             margin-bottom: 15px;
+            font-size: 2rem;
         }
 
         /* Game Log */
@@ -276,17 +316,17 @@
             margin-top: 15px;
             max-height: 200px;
             overflow-y: auto;
-            background: #222;
-            border: 1px solid #444;
-            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(92, 64, 51, 0.6);
+            border-radius: 6px;
             padding: 10px;
         }
 
         .log-entry {
             font-size: 0.85rem;
-            color: #ccc;
-            padding: 3px 0;
-            border-bottom: 1px solid #333;
+            color: #c9b89b;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(92, 64, 51, 0.3);
         }
 
         .log-entry:last-child {
@@ -299,10 +339,10 @@
             height: auto;
             min-height: 70px;
             display: flex;
-            gap: 4px;
+            gap: 6px;
             flex-wrap: wrap;
-            background: #404040;
-            padding: 5px;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.15) 100%);
+            padding: 8px;
         }
 
         .turn-stack .turn-label {
@@ -310,8 +350,8 @@
             top: 2px;
             left: 2px;
             font-size: 0.6rem;
-            color: #aaa;
-            background: rgba(0,0,0,0.5);
+            color: #c9b89b;
+            background: rgba(0, 0, 0, 0.6);
             padding: 2px 4px;
             border-radius: 2px;
         }
@@ -319,7 +359,11 @@
         .turn-stack.expanded .turn-label {
             width: 100%;
             position: relative;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            background: none;
+            padding: 0;
+            color: #d4af37;
+            font-size: 0.8rem;
         }
     </style>
 </head>
@@ -379,12 +423,12 @@
             <div id="game-log"></div>
         </div>
 
-        <footer style="margin-top: 20px; text-align: center; color: #888; font-size: 0.9rem; padding-bottom: 20px;">
+        <footer style="margin-top: 20px; text-align: center; color: #998877; font-size: 0.9rem; padding-bottom: 20px;">
             <p>
                 Dungeon Solitaire: Tomb of Four Kings designed by Matthew Lowes<br>
-                <a href="https://boardgamegeek.com/boardgame/180387/dungeon-solitaire-tomb-of-four-kings" target="_blank" style="color: #4a6fa5; text-decoration: none;">View on BoardGameGeek</a>
+                <a href="https://boardgamegeek.com/boardgame/180387/dungeon-solitaire-tomb-of-four-kings" target="_blank" style="color: #d4af37; text-decoration: none;">View on BoardGameGeek</a>
                 |
-                <a href="https://matthewlowes.com/wp-content/uploads/2016/01/dungeon-solitaire-tofk.pdf" target="_blank" style="color: #4a6fa5; text-decoration: none;">Official Rules PDF</a>
+                <a href="https://matthewlowes.com/wp-content/uploads/2016/01/dungeon-solitaire-tofk.pdf" target="_blank" style="color: #d4af37; text-decoration: none;">Official Rules PDF</a>
             </p>
         </footer>
 
@@ -1129,11 +1173,9 @@
             el.textContent = cardName;
             // Color it like the card would be colored
             if (game.lastCard.suit === 'hearts' || game.lastCard.suit === 'diamonds') {
-                el.style.color = 'red';
-            } else if (game.lastCard.suit === 'joker') {
-                el.style.color = 'black';
+                el.style.color = '#ff6666';
             } else {
-                el.style.color = 'black';
+                el.style.color = '#e8dcc8';
             }
         }
 
@@ -1150,14 +1192,14 @@
                     const empty = document.createElement('div');
                     empty.style.width = '45px';
                     empty.style.height = '63px';
-                    empty.style.border = '1px dashed #555';
-                    empty.style.borderRadius = '4px';
+                    empty.style.border = '1px dashed #8b7355';
+                    empty.style.borderRadius = '6px';
                     empty.textContent = 'Empty';
                     empty.style.fontSize = '0.6rem';
                     empty.style.display = 'flex';
                     empty.style.alignItems = 'center';
                     empty.style.justifyContent = 'center';
-                    empty.style.color = '#555';
+                    empty.style.color = '#8b7355';
                     container.appendChild(empty);
                 }
             }
@@ -1316,7 +1358,7 @@
             });
 
             if (game.playerHand.length === 0) {
-                container.innerHTML = '<em style="color: #666;">Empty</em>';
+                container.innerHTML = '<em style="color: #8b7355;">Empty</em>';
             }
         }
 
