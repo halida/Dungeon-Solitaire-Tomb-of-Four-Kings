@@ -1088,6 +1088,10 @@
             addLog(`Player starting retreat after ${game.delve.length} delve turns`);
             game.phase = 'retreat';
             game.currentTurn = null;
+            // Check if we've already reached the exit (when starting retreat after 1 delve turn)
+            if (checkPhaseComplete()) {
+                return;
+            }
             setMessage(`You begin retreating from the dungeon. Retreat turns go from right to left. Draw your first retreat turn card.`);
             saveGame();
             renderAll();
