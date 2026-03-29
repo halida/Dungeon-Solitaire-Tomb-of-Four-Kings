@@ -343,6 +343,88 @@
             font-weight: bold;
         }
 
+        /* Status Area layout */
+        .status-top {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .last-card-box {
+            flex-shrink: 0;
+        }
+
+        .last-card-label {
+            font-size: 0.8rem;
+            color: #d4af37;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .game-message-box {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        #game-message {
+            font-size: 1.1rem;
+            color: #f0e6d2;
+        }
+
+        .score-row {
+            text-align: center;
+        }
+
+        /* Small card for last card display */
+        .small-card {
+            width: 50px;
+            height: 70px;
+            border: 2px solid #8b7355;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 3px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            background: linear-gradient(to bottom right, #f5f1e8 0%, #e8dcc8 100%);
+        }
+
+        .small-card.spades, .small-card.clubs {
+            color: #000000;
+        }
+
+        .small-card.hearts, .small-card.diamonds {
+            color: #8b0000;
+        }
+
+        .small-card .suit {
+            text-align: center;
+            font-size: 1.4rem;
+            line-height: 1;
+        }
+
+        .small-card-empty {
+            width: 50px;
+            height: 70px;
+            border: 1px dashed #8b7355;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: #8b7355;
+            background: rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 600px) {
+            .status-top {
+                flex-direction: column;
+            }
+        }
+
         /* Game over overlay */
         .game-over {
             display: none;
@@ -487,10 +569,17 @@
         <div class="left-column">
             <!-- Status Area (top of left column - most important) -->
             <div id="status-area">
-                <div id="game-message">Click "New Game" to start exploring the dungeon!</div>
-                <div id="score-display"></div>
-                <div id="last-card-display" style="margin-top: 8px; font-size: 0.9rem; color: #ccc;">
-                    Last card: <span id="last-card">None</span>
+                <div class="status-top">
+                    <div class="last-card-box">
+                        <div class="last-card-label">Last Card</div>
+                        <div id="last-card-display"></div>
+                    </div>
+                    <div class="game-message-box">
+                        <div id="game-message">Click "New Game" to start exploring the dungeon!</div>
+                    </div>
+                </div>
+                <div class="score-row">
+                    <div id="score-display"></div>
                 </div>
             </div>
 
@@ -1409,19 +1498,31 @@
         }
 
         function renderLastCard() {
-            const el = document.getElementById('last-card');
+            const container = document.getElementById('last-card-display');
+            container.innerHTML = '';
+
             if (!game.lastCard) {
-                el.textContent = 'None';
+                const empty = document.createElement('div');
+                empty.className = 'small-card-empty';
+                empty.textContent = 'None';
+                container.appendChild(empty);
                 return;
             }
-            const cardName = game.lastCard.rank === 'Joker' ? 'Joker 🃏' : `${game.lastCard.rank}${SUIT_SYMBOLS[game.lastCard.suit]}`;
-            el.textContent = cardName;
-            // Color it like the card would be colored
-            if (game.lastCard.suit === 'hearts' || game.lastCard.suit === 'diamonds') {
-                el.style.color = '#ff6666';
+
+            const card = document.createElement('div');
+            card.className = `small-card ${game.lastCard.suit}`;
+            if (game.lastCard.rank === 'Joker') {
+                card.innerHTML = `
+                    <div class="rank">Joker</div>
+                    <div class="suit">🃏</div>
+                `;
             } else {
-                el.style.color = '#e8dcc8';
+                card.innerHTML = `
+                    <div class="rank">${game.lastCard.rank}</div>
+                    <div class="suit">${SUIT_SYMBOLS[game.lastCard.suit]}</div>
+                `;
             }
+            container.appendChild(card);
         }
 
         function renderTorches() {
