@@ -369,6 +369,9 @@
         <div id="status-area">
             <div id="game-message">Click "New Game" to start exploring the dungeon!</div>
             <div id="score-display"></div>
+            <div id="last-card-display" style="margin-top: 8px; font-size: 0.9rem; color: #ccc;">
+                Last card: <span id="last-card">None</span>
+            </div>
         </div>
 
         <div class="area">
@@ -435,7 +438,8 @@
             phase: 'delve', // delve or retreat
             scrollUsed: false,
             jokerInHand: false,
-            log: []
+            log: [],
+            lastCard: null
         };
 
         // Add entry to game log
@@ -547,7 +551,8 @@
                 phase: 'delve',
                 scrollUsed: false,
                 jokerInHand: false,
-                log: []
+                log: [],
+                lastCard: null
             };
 
             addLog("New game started - beginning delve.");
@@ -663,6 +668,7 @@
             const card = drawCard();
             if (!card) return;
 
+            game.lastCard = card;
             const cardName = card.rank === 'Joker' ? 'Joker' : `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
             addLog(`${game.phase === 'delve' ? 'Delve' : 'Retreat'} turn ${game.currentTurnIndex + 1}: Drew ${cardName}`);
 
@@ -1098,8 +1104,27 @@
             renderPlayerHand();
             renderDiscard();
             renderLog();
+            renderLastCard();
             updateScore();
             updateButtons();
+        }
+
+        function renderLastCard() {
+            const el = document.getElementById('last-card');
+            if (!game.lastCard) {
+                el.textContent = 'None';
+                return;
+            }
+            const cardName = game.lastCard.rank === 'Joker' ? 'Joker 🃏' : `${game.lastCard.rank}${SUIT_SYMBOLS[game.lastCard.suit]}`;
+            el.textContent = cardName;
+            // Color it like the card would be colored
+            if (game.lastCard.suit === 'hearts' || game.lastCard.suit === 'diamonds') {
+                el.style.color = 'red';
+            } else if (game.lastCard.suit === 'joker') {
+                el.style.color = 'black';
+            } else {
+                el.style.color = 'black';
+            }
         }
 
         function renderTorches() {
