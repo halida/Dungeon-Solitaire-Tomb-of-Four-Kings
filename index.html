@@ -532,6 +532,8 @@
             flex-wrap: wrap;
             background: linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.15) 100%);
             padding: 8px;
+            align-self: flex-start;
+            max-width: 100%;
         }
 
         .turn-stack .turn-label {
@@ -1661,9 +1663,41 @@
                     turnLabel.className = 'turn-label';
                     turnLabel.textContent = `Turn ${index + 1} - ${turn.cards.length} card${turn.cards.length !== 1 ? 's' : ''} (click to collapse)`;
                     container.appendChild(turnLabel);
+
+                    if (turn.encounter) {
+                        // Show encounter info at top (compact, separate line)
+                        const encounterInfo = document.createElement('div');
+                        encounterInfo.className = 'encounter-info';
+                        encounterInfo.style.display = 'block';
+                        encounterInfo.style.width = '100%';
+                        encounterInfo.style.fontSize = '0.8rem';
+                        encounterInfo.style.color = '#d4af37';
+                        encounterInfo.style.marginBottom = '8px';
+                        encounterInfo.style.clear = 'both';
+                        const typeName = getEncounterName(turn.encounter.type);
+                        encounterInfo.innerHTML = `<strong>Encounter:</strong> ${typeName} (value ${turn.encounter.card.value})`;
+                        container.appendChild(encounterInfo);
+                    }
+
                     turn.cards.forEach(card => {
+                        const cardContainer = document.createElement('div');
+                        cardContainer.style.display = 'inline-block';
+                        cardContainer.style.textAlign = 'center';
+                        cardContainer.style.margin = '0 4px 8px 4px';
+
+                        // Only add type label on the actual encounter card, not on action cards
+                        if (turn.encounter && card === turn.encounter.card) {
+                            const typeLabel = document.createElement('div');
+                            typeLabel.style.fontSize = '0.7rem';
+                            typeLabel.style.color = '#d4af37';
+                            typeLabel.style.marginBottom = '2px';
+                            typeLabel.textContent = getEncounterName(turn.encounter.type);
+                            cardContainer.appendChild(typeLabel);
+                        }
+
                         const cardEl = createCardElement(card);
-                        container.appendChild(cardEl);
+                        cardContainer.appendChild(cardEl);
+                        container.appendChild(cardContainer);
                     });
                 } else {
                     // Collapse back to original state
