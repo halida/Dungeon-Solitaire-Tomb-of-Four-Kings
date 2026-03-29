@@ -576,37 +576,40 @@
             }
 
             const card = game.deck.pop();
-            handleSpecialCard(card);
             return card;
         }
 
         // Handle immediate effects of special cards (aces, jacks)
+        // Returns true if card was consumed (should NOT be added to current turn)
         function handleSpecialCard(card) {
-            // Ace = Torch
+            // Ace = Torch - consumed immediately, not added to turn
             if (card.rank === 'A') {
                 const cardName = `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
                 addLog(`Ace ${cardName} → Torch ${game.torches.length + 1}/4`);
                 game.torches.push(card);
                 checkTorchGameOver();
-                return;
+                return true; // consumed
             }
 
-            // Jack = Skill - goes to hand immediately
+            // Jack = Skill - goes to hand immediately, not added to turn
             if (card.rank === 'J' && card.rank !== 'Joker') {
                 const cardName = `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
                 addLog(`Jack ${cardName} → Skill added to hand`);
                 game.playerHand.push(card);
                 saveGame();
                 renderAll();
-                return;
+                return true; // consumed
             }
 
             // Joker = Scroll of Light - stays in turn until end
             if (card.rank === 'Joker') {
                 addLog(`Joker → Scroll of Light added to turn (will go to hand when resolved)`);
                 game.jokerInHand = true;
-                return;
+                return false; // stays in turn
             }
+
+            // Not a special card
+            return false;
         }
 
         // Check if 4th torch causes game over
@@ -626,12 +629,10 @@
                     saveGame();
                     renderAll();
                     return;
-                } else if (game.deck.length === 0 && game.torches.length >= 4) {
-                    addLog(`GAME OVER: 4 torches burned out, no Scroll of Light left, deck empty`);
+                } else {
+                    // No Scroll of Light available - game over immediately per rules
+                    addLog(`GAME OVER: Fourth torch drawn, no Scroll of Light (Joker) available`);
                     gameOver('lost', 'Four torches have burned out and you have no Scroll of Light. You are lost in the dark dungeon forever.');
-                } else if (game.deck.length === 0) {
-                    addLog(`GAME OVER: out of cards, fourth torch burned out`);
-                    gameOver('lost', 'You are out of cards and your fourth torch burned out. Game over.');
                 }
             }
         }
@@ -671,6 +672,15 @@
             game.lastCard = card;
             const cardName = card.rank === 'Joker' ? 'Joker' : `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
             addLog(`${game.phase === 'delve' ? 'Delve' : 'Retreat'} turn ${game.currentTurnIndex + 1}: Drew ${cardName}`);
+
+            // Check if card was already handled (ace/jack) - don't add to turn
+            const handled = handleSpecialCard(card);
+            if (handled) {
+                // Card already consumed by special effect, don't add to turn cards
+                saveGame();
+                renderAll();
+                return;
+            }
 
             game.currentTurn.cards.push(card);
 
