@@ -503,7 +503,7 @@
         /* Game Log */
         #game-log {
             margin-top: 15px;
-            max-height: 800px;
+            max-height: 600px;
             overflow-y: auto;
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(92, 64, 51, 0.6);
@@ -596,19 +596,19 @@
             <!-- Bottom Row -->
             <div class="bottom-row">
                 <div class="status-block">
+                    <div class="area full">
+                        <div class="area-title">Hit Points</div>
+                        <div id="hitpoints-cards"></div>
+                    </div>
                     <div class="status-row">
                         <div class="area half">
-                            <div class="area-title">Torches</div>
+                            <div class="area-title">Lost Torches</div>
                             <div id="torches-area"></div>
                         </div>
                         <div class="area half">
                             <div class="area-title">Discard</div>
                             <div id="discard-count">0 cards</div>
                         </div>
-                    </div>
-                    <div class="area full">
-                        <div class="area-title">Hit Points</div>
-                        <div id="hitpoints-cards"></div>
                     </div>
                 </div>
 
