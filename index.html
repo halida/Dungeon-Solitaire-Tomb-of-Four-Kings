@@ -503,7 +503,7 @@
         /* Game Log */
         #game-log {
             margin-top: 15px;
-            max-height: 200px;
+            max-height: 800px;
             overflow-y: auto;
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(92, 64, 51, 0.6);
@@ -562,6 +562,7 @@
         <div class="controls">
             <button id="new-game-btn" onclick="newGame()">New Game</button>
             <button id="draw-card-btn" onclick="drawToCurrentTurn()" disabled>Draw Card</button>
+            <button id="top-scores-btn" onclick="showTopScores()">Top Scores</button>
         </div>
     </header>
 
@@ -645,6 +646,15 @@
             <br>
             <button onclick="hideGameOver(); newGame();">Play Again</button>
             <button onclick="hideGameOver();">Close</button>
+        </div>
+    </div>
+
+    <div id="top-scores-modal" class="game-over">
+        <div class="game-over-content">
+            <h2>Top 10 High Scores</h2>
+            <div id="top-scores-container" class="high-scores"></div>
+            <br>
+            <button onclick="hideTopScores();">Close</button>
         </div>
     </div>
 
@@ -1475,6 +1485,18 @@
 
         function hideGameOver() {
             document.getElementById('game-over-modal').classList.remove('show');
+        }
+
+        // Show top scores modal
+        function showTopScores() {
+            const modal = document.getElementById('top-scores-modal');
+            const container = document.getElementById('top-scores-container');
+            renderHighScores(container);
+            modal.classList.add('show');
+        }
+
+        function hideTopScores() {
+            document.getElementById('top-scores-modal').classList.remove('show');
         }
 
         // Set game message
