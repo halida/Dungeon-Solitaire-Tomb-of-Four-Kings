@@ -124,8 +124,8 @@
         }
 
         .turn-stack {
-            width: 50px;
-            height: 70px;
+            width: 72px;
+            height: 100px;
             border: 2px solid #5c4033;
             border-radius: 6px;
             display: flex;
@@ -174,16 +174,16 @@
 
         /* Card Styles - Themed */
         .card {
-            width: 45px;
-            height: 63px;
+            width: 65px;
+            height: 90px;
             border: 2px solid #8b7355;
             border-radius: 6px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 3px;
+            padding: 5px;
             font-weight: bold;
-            font-size: 0.8rem;
+            font-size: 1.0rem;
             cursor: pointer;
             background: linear-gradient(to bottom right, #f5f1e8 0%, #e8dcc8 100%);
             color: #1a1a1a;
@@ -213,7 +213,7 @@
 
         .card .suit {
             text-align: center;
-            font-size: 1.4rem;
+            font-size: 1.8rem;
             line-height: 1;
         }
 
@@ -223,16 +223,16 @@
         }
 
         .card-in-hand {
-            width: 55px;
-            height: 77px;
+            width: 78px;
+            height: 108px;
         }
 
         .card-in-hand .rank {
-            font-size: 1rem;
+            font-size: 1.2rem;
         }
 
         .card-in-hand .suit {
-            font-size: 1.8rem;
+            font-size: 2.4rem;
         }
 
         .card-playable {
@@ -243,17 +243,17 @@
 
         /* HP card - flipped is damaged */
         .hp-card {
-            width: 28px;
-            height: 40px;
+            width: 38px;
+            height: 54px;
             border: 1px solid #5c4033;
             border-radius: 3px;
             background: linear-gradient(to bottom, #f5f1e8 0%, #e8dcc8 100%);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 1px;
+            padding: 2px;
             font-weight: bold;
-            font-size: 0.6rem;
+            font-size: 0.8rem;
             color: #8b0000;
         }
 
@@ -270,7 +270,7 @@
 
         .hp-card .hp-suit {
             text-align: center;
-            font-size: 0.8rem;
+            font-size: 1.1rem;
             line-height: 1;
         }
 
@@ -333,6 +333,48 @@
             color: #d4af37;
             margin-bottom: 15px;
             font-size: 2rem;
+        }
+
+        /* High Scores Table */
+        .high-scores {
+            margin-top: 20px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .high-scores h3 {
+            color: #d4af37;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .high-scores table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        .high-scores th,
+        .high-scores td {
+            border: 1px solid #5c4033;
+            padding: 6px 10px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .high-scores th {
+            background: rgba(0, 0, 0, 0.3);
+            color: #d4af37;
+        }
+
+        .high-scores tr:nth-child(even) {
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .clear-scores-btn {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            padding: 5px 10px;
         }
 
         /* Game Log */
@@ -461,6 +503,8 @@
             <h2 id="game-over-title"></h2>
             <p id="game-over-message"></p>
             <div id="game-over-score"></div>
+            <div id="game-over-time"></div>
+            <div id="high-scores-container" class="high-scores"></div>
             <br>
             <button onclick="hideGameOver(); newGame();">Play Again</button>
             <button onclick="hideGameOver();">Close</button>
@@ -507,8 +551,14 @@
             scrollUsed: false,
             jokerInHand: false,
             log: [],
-            lastCard: null
+            lastCard: null,
+            startTime: null,
+            endTime: null,
+            elapsedTime: 0
         };
+
+        // High score storage key
+        const HIGH_SCORES_KEY = 'dungeon-solitaire-highscores';
 
         // Add entry to game log
         function addLog(message) {
@@ -620,7 +670,10 @@
                 scrollUsed: false,
                 jokerInHand: false,
                 log: [],
-                lastCard: null
+                lastCard: null,
+                startTime: Date.now(),
+                endTime: null,
+                elapsedTime: 0
             };
 
             addLog("New game started - beginning delve.");
@@ -1138,6 +1191,9 @@
 
         // Game over
         function gameOver(result, message, score) {
+            game.endTime = Date.now();
+            // Add current session time to any previously elapsed time from saves
+            game.elapsedTime += Math.floor((game.endTime - game.startTime) / 1000); // seconds
             addLog(`GAME OVER: ${result.toUpperCase()} - ${message}`);
             game.gameStatus = result === 'won' ? 'won' : 'lost';
             document.getElementById('draw-card-btn').disabled = true;
@@ -1146,6 +1202,8 @@
             const title = document.getElementById('game-over-title');
             const msgEl = document.getElementById('game-over-message');
             const scoreEl = document.getElementById('game-over-score');
+            const timeEl = document.getElementById('game-over-time');
+            const highScoresContainer = document.getElementById('high-scores-container');
 
             if (result === 'won') {
                 title.textContent = 'Victory!';
@@ -1163,8 +1221,119 @@
                 scoreEl.innerHTML = '';
             }
 
+            // Display time taken
+            if (game.startTime && result === 'won') {
+                const minutes = Math.floor(game.elapsedTime / 60);
+                const seconds = game.elapsedTime % 60;
+                timeEl.innerHTML = `<br><strong>Time: ${minutes}:${seconds.toString().padStart(2, '0')}</strong>`;
+
+                // Save score to high scores
+                saveHighScore(score.total, game.elapsedTime);
+            } else {
+                timeEl.innerHTML = '';
+            }
+
+            // Display high scores
+            renderHighScores(highScoresContainer);
+
             modal.classList.add('show');
             clearGameSave();
+        }
+
+        // Load high scores from localStorage
+        function loadHighScores() {
+            try {
+                const saved = localStorage.getItem(HIGH_SCORES_KEY);
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+            } catch (e) {
+                // Ignore
+            }
+            return [];
+        }
+
+        // Save high score - keep only top 10
+        function saveHighScore(score, elapsedSeconds) {
+            const highScores = loadHighScores();
+            const now = new Date();
+            const dateTime = now.toLocaleString(); // Full date and time
+
+            highScores.push({
+                score: score,
+                time: elapsedSeconds,
+                dateTime: dateTime
+            });
+
+            // Sort by score (descending), then by time (ascending - faster is better for same score)
+            highScores.sort((a, b) => {
+                if (b.score !== a.score) {
+                    return b.score - a.score;
+                }
+                return a.time - b.time;
+            });
+
+            // Keep only top 10
+            const topTen = highScores.slice(0, 10);
+
+            try {
+                localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(topTen));
+            } catch (e) {
+                // Ignore storage errors
+            }
+        }
+
+        // Render high scores table
+        function renderHighScores(container) {
+            const highScores = loadHighScores();
+
+            if (highScores.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <h3>Top 10 Scores</h3>
+                <table>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Score</th>
+                        <th>Time</th>
+                        <th>Date & Time</th>
+                    </tr>
+            `;
+
+            highScores.forEach((entry, index) => {
+                const minutes = Math.floor(entry.time / 60);
+                const seconds = entry.time % 60;
+                const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                const dateTimeStr = entry.dateTime || entry.date; // Backward compatible
+
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${entry.score}</td>
+                        <td>${timeStr}</td>
+                        <td>${dateTimeStr}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                </table>
+                <button class="clear-scores-btn" onclick="clearHighScores(event)">Clear All Scores</button>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Clear all high scores
+        function clearHighScores(event) {
+            if (confirm('Are you sure you want to clear all high scores?')) {
+                localStorage.removeItem(HIGH_SCORES_KEY);
+                const container = document.getElementById('high-scores-container');
+                container.innerHTML = '';
+            }
         }
 
         function hideGameOver() {
@@ -1218,12 +1387,12 @@
                     container.appendChild(el);
                 } else {
                     const empty = document.createElement('div');
-                    empty.style.width = '45px';
-                    empty.style.height = '63px';
+                    empty.style.width = '65px';
+                    empty.style.height = '90px';
                     empty.style.border = '1px dashed #8b7355';
                     empty.style.borderRadius = '6px';
                     empty.textContent = 'Empty';
-                    empty.style.fontSize = '0.6rem';
+                    empty.style.fontSize = '0.8rem';
                     empty.style.display = 'flex';
                     empty.style.alignItems = 'center';
                     empty.style.justifyContent = 'center';
@@ -1246,9 +1415,9 @@
             if (game.phase === 'delve' && game.delve.length > 0 && game.currentTurn && game.currentTurn.resolved) {
                 const startRetreatBtn = document.createElement('button');
                 startRetreatBtn.textContent = 'Start\nRetreat';
-                startRetreatBtn.style.width = '50px';
-                startRetreatBtn.style.height = '70px';
-                startRetreatBtn.style.fontSize = '0.7rem';
+                startRetreatBtn.style.width = '72px';
+                startRetreatBtn.style.height = '100px';
+                startRetreatBtn.style.fontSize = '0.6rem';
                 startRetreatBtn.style.whiteSpace = 'pre';
                 startRetreatBtn.onclick = startRetreat;
                 container.appendChild(startRetreatBtn);
@@ -1468,6 +1637,16 @@
                 const saved = localStorage.getItem('dungeon-solitaire-save');
                 if (saved) {
                     game = JSON.parse(saved);
+                    // Adjust startTime if game is still active (preserve elapsed time)
+                    if (game.gameStatus === 'active' && game.startTime && !game.endTime) {
+                        const alreadyElapsed = Date.now() - game.startTime;
+                        // Keep track of original elapsed time
+                        if (!game.elapsedTime) {
+                            game.elapsedTime = 0;
+                        }
+                        game.elapsedTime += Math.floor(alreadyElapsed / 1000);
+                        game.startTime = Date.now();
+                    }
                     // Re-hydrate functions if needed
                     setMessage(game.message);
                     renderAll();
