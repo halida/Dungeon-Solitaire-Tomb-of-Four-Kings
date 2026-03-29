@@ -270,6 +270,57 @@
             color: #f0d080;
             margin-bottom: 15px;
         }
+
+        /* Game Log */
+        #game-log {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .log-entry {
+            font-size: 0.85rem;
+            color: #ccc;
+            padding: 3px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        /* Expanded turn (viewing cards) */
+        .turn-stack.expanded {
+            width: auto;
+            height: auto;
+            min-height: 70px;
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            background: #404040;
+            padding: 5px;
+        }
+
+        .turn-stack .turn-label {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            font-size: 0.6rem;
+            color: #aaa;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+
+        .turn-stack.expanded .turn-label {
+            width: 100%;
+            position: relative;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
@@ -318,6 +369,11 @@
         <div id="status-area">
             <div id="game-message">Click "New Game" to start exploring the dungeon!</div>
             <div id="score-display"></div>
+        </div>
+
+        <div class="area">
+            <div class="area-title">Game Log</div>
+            <div id="game-log"></div>
         </div>
     </div>
 
@@ -370,8 +426,30 @@
             message: '',
             phase: 'delve', // delve or retreat
             scrollUsed: false,
-            jokerInHand: false
+            jokerInHand: false,
+            log: []
         };
+
+        // Add entry to game log
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            game.log.push(`[${timestamp}] ${message}`);
+            renderLog();
+        }
+
+        function renderLog() {
+            const container = document.getElementById('game-log');
+            container.innerHTML = '';
+            // Show newest first, but keep chronological order for reading
+            for (let i = game.log.length - 1; i >= 0; i--) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = game.log[i];
+                container.appendChild(entry);
+            }
+            // Scroll to bottom (top in our reversed display)
+            container.scrollTop = 0;
+        }
 
         // Card constructor
         function Card(suit, rank) {
@@ -460,9 +538,11 @@
                 message: 'Game started! Click "Draw Card" to begin the first delve turn.',
                 phase: 'delve',
                 scrollUsed: false,
-                jokerInHand: false
+                jokerInHand: false,
+                log: []
             };
 
+            addLog("New game started - beginning delve.");
             // Save to localStorage
             saveGame();
 
@@ -491,6 +571,8 @@
         function handleSpecialCard(card) {
             // Ace = Torch
             if (card.rank === 'A') {
+                const cardName = `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
+                addLog(`Ace ${cardName} → Torch ${game.torches.length + 1}/4`);
                 game.torches.push(card);
                 checkTorchGameOver();
                 return;
@@ -498,6 +580,8 @@
 
             // Jack = Skill - goes to hand immediately
             if (card.rank === 'J' && card.rank !== 'Joker') {
+                const cardName = `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
+                addLog(`Jack ${cardName} → Skill added to hand`);
                 game.playerHand.push(card);
                 saveGame();
                 renderAll();
@@ -506,6 +590,7 @@
 
             // Joker = Scroll of Light - stays in turn until end
             if (card.rank === 'Joker') {
+                addLog(`Joker → Scroll of Light added to turn (will go to hand when resolved)`);
                 game.jokerInHand = true;
                 return;
             }
@@ -523,13 +608,16 @@
                     // Put ace on bottom of deck
                     game.deck.unshift(ace);
                     game.scrollUsed = true;
+                    addLog(`Fourth torch! Used Scroll of Light - returned ace to bottom of deck, torches now ${game.torches.length}`);
                     setMessage("Fourth torch! You used your Scroll of Light to return the torch to the bottom of the deck. You're safe for now.");
                     saveGame();
                     renderAll();
                     return;
                 } else if (game.deck.length === 0 && game.torches.length >= 4) {
+                    addLog(`GAME OVER: 4 torches burned out, no Scroll of Light left, deck empty`);
                     gameOver('lost', 'Four torches have burned out and you have no Scroll of Light. You are lost in the dark dungeon forever.');
                 } else if (game.deck.length === 0) {
+                    addLog(`GAME OVER: out of cards, fourth torch burned out`);
                     gameOver('lost', 'You are out of cards and your fourth torch burned out. Game over.');
                 }
             }
@@ -545,9 +633,11 @@
             if (game.phase === 'delve') {
                 game.delve.push(turn);
                 game.currentTurnIndex = game.delve.length - 1;
+                addLog(`Starting new delve turn #${game.delve.length}`);
             } else {
                 game.retreat.push(turn);
                 game.currentTurnIndex = game.retreat.length - 1;
+                addLog(`Starting new retreat turn #${game.retreat.length}`);
             }
 
             setMessage(`New ${game.phase} turn started. Draw until you get an encounter.`);
@@ -565,6 +655,9 @@
             const card = drawCard();
             if (!card) return;
 
+            const cardName = card.rank === 'Joker' ? 'Joker' : `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
+            addLog(`${game.phase === 'delve' ? 'Delve' : 'Retreat'} turn ${game.currentTurnIndex + 1}: Drew ${cardName}`);
+
             game.currentTurn.cards.push(card);
 
             // Check if we have an encounter yet
@@ -574,9 +667,12 @@
                     const type = getEncounterType(card);
                     game.currentTurn.encounter = { type, card };
 
+                    addLog(`Encounter: ${getEncounterName(type)} (value ${card.value})`);
+
                     // Check for divine favor already in turn
                     const hasDivine = game.currentTurn.cards.some(c => c.rank === 'Q');
                     if (hasDivine) {
+                        addLog(`Divine favor already in turn - automatically wins`);
                         // Divine favor automatically wins
                         resolveEncounter(true);
                         return;
@@ -584,14 +680,17 @@
 
                     setMessage(`Encounter: ${getEncounterName(type)} (${card.value}). Play from deck or use a skill from your hand.`);
                 } else if (card.rank === 'K') {
+                    addLog(`Found Tomb Hoard (K) - added to potential treasure, draw again`);
                     // Tomb hoard - keep as treasure, draw another
                     setMessage(`Found a Tomb Hoard! Draw another card.`);
                 } else if (card.rank === 'Q') {
+                    addLog(`Divine favor (Q) - next encounter will be auto-won`);
                     // Divine favor before encounter - keep drawing
                     setMessage(`Divine favor! You will automatically win the next encounter. Keep drawing.`);
                 }
             } else {
                 // We already have an encounter - this is an action card
+                addLog(`Action card ${cardName} against ${game.currentTurn.encounter.type} (value ${card.value} vs ${game.currentTurn.encounter.card.value})`);
                 resolveAction(card);
             }
 
@@ -623,6 +722,9 @@
             const encounterValue = encounter.card.value;
             const actionValue = actionCard.value;
             const success = actionValue >= encounterValue;
+            const cardName = actionCard.rank === 'Joker' ? 'Joker' : `${actionCard.rank}${SUIT_SYMBOLS[actionCard.suit]}`;
+
+            addLog(`Resolving ${getEncounterName(encounter.type)} with ${cardName} (${actionValue} vs ${encounterValue}) → ${success ? 'SUCCESS' : 'FAILURE'}`);
 
             switch (encounter.type) {
                 case 'monster':
@@ -631,6 +733,7 @@
                     } else {
                         const damage = encounterValue - actionValue;
                         takeDamage(damage);
+                        addLog(`Monster attack hits - ${damage} damage taken`);
                         setMessage(`Your ${actionCard.rank}${SUIT_SYMBOLS[actionCard.suit]} is too weak. You take ${damage} damage. Draw another card.`);
                         checkGameOverAfterDamage();
                     }
@@ -643,6 +746,7 @@
                     } else {
                         const damage = encounterValue - actionValue;
                         takeDamage(damage);
+                        addLog(`Trap triggered - ${damage} damage taken, no treasure`);
                         resolveEncounter(false);
                         setMessage(`Your ${actionCard.rank}${SUIT_SYMBOLS[actionCard.suit]} failed to disarm. You take ${damage} damage. No treasure collected.`);
                     }
@@ -654,6 +758,7 @@
                         resolveEncounter(true);
                     } else {
                         const discardCount = encounterValue - actionValue;
+                        addLog(`Door opening failed - discard ${discardCount} card(s) from deck, no treasure`);
                         discardFromDeck(discardCount);
                         resolveEncounter(false);
                         setMessage(`Your ${actionCard.rank}${SUIT_SYMBOLS[actionCard.suit]} failed to open. ${discardCount} card(s) discarded. No treasure collected.`);
@@ -670,6 +775,9 @@
 
             const card = game.playerHand[cardIndex];
             const encounterType = game.currentTurn.encounter.type;
+            const cardName = `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
+
+            addLog(`Playing skill ${cardName} from hand against ${encounterType}`);
 
             // Check if this skill works for this encounter
             let success = false;
@@ -694,6 +802,7 @@
                     // Unflip the most recently flipped damage card
                     unflippedLastDamage();
                     game.playerHand.splice(cardIndex, 1);
+                    addLog(`Dodge Blow used - restored last damage`);
                     setMessage(`You used Dodge Blow to avoid the last instance of damage.`);
                     saveGame();
                     renderAll();
@@ -704,10 +813,12 @@
             // Queens are already turned after the turn
 
             if (success) {
+                addLog(`Skill ${cardName} succeeded - encounter won`);
                 game.playerHand.splice(cardIndex, 1);
                 resolveEncounter(true);
                 setMessage(`You used your ${card.rank}${SUIT_SYMBOLS[card.suit]} skill to ${getSkillAction(card)}.`);
             } else {
+                addLog(`Skill ${cardName} doesn't work on this encounter`);
                 setMessage(`That skill doesn't work on this ${encounterType}. Try another or draw from the deck.`);
             }
 
@@ -739,6 +850,9 @@
 
             const treasureCard = game.playerHand[cardIndex];
             const monsterValue = game.currentTurn.encounter.card.value;
+            const cardName = treasureCard.rank === 'Joker' ? 'Joker' : `${treasureCard.rank}${SUIT_SYMBOLS[treasureCard.suit]}`;
+
+            addLog(`Attempting escape: drop treasure ${cardName} (value ${treasureCard.value}) to distract monster (needs ${monsterValue})`);
 
             // Check if treasure value >= monster value (king=10, joker=6)
             let treasureValue = treasureCard.value;
@@ -751,8 +865,10 @@
                 game.currentTurn.cards.push(treasureCard);
                 game.currentTurn.escape = true;
                 resolveEncounter(false);
+                addLog(`Escape successful - ${cardName} dropped, no treasure collected`);
                 setMessage(`You dropped ${treasureCard.rank}${SUIT_SYMBOLS[treasureCard.suit]} and escaped the monster. No treasure collected.`);
             } else {
+                addLog(`Escape failed - treasure value too low`);
                 setMessage(`That treasure (value ${treasureValue}) is not high enough to distract the monster (needs ${monsterValue}).`);
             }
 
@@ -775,9 +891,13 @@
             game.currentTurn.resolved = true;
             game.currentTurn.encounter.won = won;
 
+            addLog(`Turn ${game.currentTurnIndex + 1} resolved - encounter ${won ? 'WON' : 'LOST'}`);
+
             if (won) {
                 // Collect treasure
                 collectTreasure();
+                const treasureCount = game.playerHand.length - (game.playerHand.length - (game.delve.length + game.retreat.length)); // rough estimate
+                addLog(`Treasure collected from this turn`);
                 const phaseDone = checkPhaseComplete();
                 if (!phaseDone) {
                     if (game.phase === 'delve') {
@@ -834,6 +954,7 @@
 
         // Take damage
         function takeDamage(amount) {
+            addLog(`Taking ${amount} damage`);
             let remaining = amount;
             for (let i = game.hitPoints.length - 1; i >= 0 && remaining > 0; i--) {
                 if (!game.hitPoints[i].flipped) {
@@ -872,6 +993,7 @@
         // Player decides to start retreat
         function startRetreat() {
             if (game.phase !== 'delve') return;
+            addLog(`Player starting retreat after ${game.delve.length} delve turns`);
             game.phase = 'retreat';
             game.currentTurn = null;
             setMessage(`You begin retreating from the dungeon. Retreat turns go from right to left. Draw your first retreat turn card.`);
@@ -883,6 +1005,7 @@
         function checkVictory() {
             const score = calculateScore();
             const fourKings = countKings() === 4;
+            addLog(`VICTORY! Reached exit alive - ${countKings()} kings, ${score.total} points`);
 
             if (fourKings) {
                 gameOver('won', `You have made it out alive with all four Tomb Hoards! You win the game!`, score);
@@ -919,6 +1042,7 @@
 
         // Game over
         function gameOver(result, message, score) {
+            addLog(`GAME OVER: ${result.toUpperCase()} - ${message}`);
             game.gameStatus = result === 'won' ? 'won' : 'lost';
             document.getElementById('draw-card-btn').disabled = true;
 
@@ -965,6 +1089,7 @@
             renderHitPoints();
             renderPlayerHand();
             renderDiscard();
+            renderLog();
             updateScore();
             updateButtons();
         }
@@ -1030,6 +1155,7 @@
         function createTurnElement(turn, index, phase) {
             const container = document.createElement('div');
             container.className = 'turn-stack';
+            container.dataset.expanded = 'false';
 
             if (!turn.resolved) {
                 // Current turn - show top card
@@ -1045,11 +1171,45 @@
                 return container;
             }
 
-            // Resolved turn - show as face down stack
+            // Resolved turn - click to toggle expansion
             container.classList.add('facedown');
-            container.textContent = `Turn\n${index + 1}`;
+            container.style.cursor = 'pointer';
             container.style.fontSize = '0.7rem';
             container.style.whiteSpace = 'pre';
+
+            // Render collapsed state
+            function renderCollapsed() {
+                container.innerHTML = '';
+                container.textContent = `Turn\n${index + 1}`;
+            }
+
+            // Add all cards when expanded
+            function toggleExpand() {
+                const isExpanded = container.dataset.expanded === 'true';
+                container.dataset.expanded = isExpanded ? 'false' : 'true';
+                container.classList.toggle('expanded');
+
+                if (container.dataset.expanded === 'true') {
+                    // Show all cards
+                    container.innerHTML = '';
+                    container.style.whiteSpace = 'normal';
+                    const turnLabel = document.createElement('div');
+                    turnLabel.className = 'turn-label';
+                    turnLabel.textContent = `Turn ${index + 1} - ${turn.cards.length} card${turn.cards.length !== 1 ? 's' : ''} (click to collapse)`;
+                    container.appendChild(turnLabel);
+                    turn.cards.forEach(card => {
+                        const cardEl = createCardElement(card);
+                        container.appendChild(cardEl);
+                    });
+                } else {
+                    // Collapse back to original state
+                    renderCollapsed();
+                    container.style.whiteSpace = 'pre';
+                }
+            }
+
+            container.onclick = toggleExpand;
+            renderCollapsed();
             return container;
         }
 
