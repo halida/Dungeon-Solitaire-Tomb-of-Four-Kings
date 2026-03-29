@@ -72,11 +72,29 @@
 
         /* Game Areas */
         .game-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
             gap: 12px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 12px;
+        }
+
+        .left-column, .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
         }
 
         .area {
@@ -102,7 +120,7 @@
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
-            min-height: 50px;
+            min-height: 30px;
             align-items: center;
         }
 
@@ -145,12 +163,35 @@
         /* Bottom Row */
         .bottom-row {
             display: grid;
-            grid-template-columns: 1fr 1fr 2fr;
+            grid-template-columns: 3fr 4fr;
             gap: 12px;
+        }
+
+        .status-block {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .status-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .status-block .area.half {
+            padding: 8px;
+        }
+
+        .status-block .area.full {
+            padding: 8px;
         }
 
         @media (max-width: 768px) {
             .bottom-row {
+                grid-template-columns: 1fr;
+            }
+            .status-row {
                 grid-template-columns: 1fr;
             }
         }
@@ -442,61 +483,68 @@
         </div>
     </header>
 
-    <div class="game-container">
-        <!-- Torches Area -->
-        <div class="area">
-            <div class="area-title">Torches</div>
-            <div id="torches-area"></div>
-        </div>
-
-        <!-- Dungeon Area -->
-        <div class="area" id="dungeon-area">
-            <div class="area-title">Delve (Going Deeper)</div>
-            <div class="delve-row" id="delve-row"></div>
-
-            <div class="area-title">Retreat (Coming Back)</div>
-            <div class="retreat-row" id="retreat-row"></div>
-        </div>
-
-        <!-- Bottom Row -->
-        <div class="bottom-row">
-            <div class="area" id="discard-area">
-                <div class="area-title">Discard</div>
-                <div id="discard-count">0 cards</div>
+    <div class="main-layout">
+        <div class="left-column">
+            <!-- Status Area (top of left column - most important) -->
+            <div id="status-area">
+                <div id="game-message">Click "New Game" to start exploring the dungeon!</div>
+                <div id="score-display"></div>
+                <div id="last-card-display" style="margin-top: 8px; font-size: 0.9rem; color: #ccc;">
+                    Last card: <span id="last-card">None</span>
+                </div>
             </div>
 
-            <div class="area" id="hitpoints-area">
-                <div class="area-title">Hit Points</div>
-                <div id="hitpoints-cards"></div>
+            <!-- Dungeon Area -->
+            <div class="area" id="dungeon-area">
+                <div class="area-title">Delve (Going Deeper)</div>
+                <div class="delve-row" id="delve-row"></div>
+
+                <div class="area-title">Retreat (Coming Back)</div>
+                <div class="retreat-row" id="retreat-row"></div>
             </div>
 
+            <!-- Bottom Row -->
+            <div class="bottom-row">
+                <div class="status-block">
+                    <div class="status-row">
+                        <div class="area half">
+                            <div class="area-title">Torches</div>
+                            <div id="torches-area"></div>
+                        </div>
+                        <div class="area half">
+                            <div class="area-title">Discard</div>
+                            <div id="discard-count">0 cards</div>
+                        </div>
+                    </div>
+                    <div class="area full">
+                        <div class="area-title">Hit Points</div>
+                        <div id="hitpoints-cards"></div>
+                    </div>
+                </div>
+
+                <div class="area player-hand-area">
+                    <div class="area-title">Your Hand (Treasure & Skills)</div>
+                    <div id="player-hand"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-column">
             <div class="area">
-                <div class="area-title">Your Hand (Treasure & Skills)</div>
-                <div id="player-hand"></div>
+                <div class="area-title">Game Log</div>
+                <div id="game-log"></div>
             </div>
         </div>
+    </div>
 
-        <div id="status-area">
-            <div id="game-message">Click "New Game" to start exploring the dungeon!</div>
-            <div id="score-display"></div>
-            <div id="last-card-display" style="margin-top: 8px; font-size: 0.9rem; color: #ccc;">
-                Last card: <span id="last-card">None</span>
-            </div>
-        </div>
-
-        <div class="area">
-            <div class="area-title">Game Log</div>
-            <div id="game-log"></div>
-        </div>
-
-        <footer style="margin-top: 20px; text-align: center; color: #998877; font-size: 0.9rem; padding-bottom: 20px;">
-            <p>
-                Dungeon Solitaire: Tomb of Four Kings designed by Matthew Lowes<br>
-                <a href="https://boardgamegeek.com/boardgame/180387/dungeon-solitaire-tomb-of-four-kings" target="_blank" style="color: #d4af37; text-decoration: none;">View on BoardGameGeek</a>
-                |
-                <a href="https://matthewlowes.com/wp-content/uploads/2016/01/dungeon-solitaire-tofk.pdf" target="_blank" style="color: #d4af37; text-decoration: none;">Official Rules PDF</a>
-            </p>
-        </footer>
+    <footer style="margin-top: 20px; text-align: center; color: #998877; font-size: 0.9rem; padding-bottom: 20px;">
+        <p>
+            Dungeon Solitaire: Tomb of Four Kings designed by Matthew Lowes<br>
+            <a href="https://boardgamegeek.com/boardgame/180387/dungeon-solitaire-tomb-of-four-kings" target="_blank" style="color: #d4af37; text-decoration: none;">View on BoardGameGeek</a>
+            |
+            <a href="https://matthewlowes.com/wp-content/uploads/2016/01/dungeon-solitaire-tofk.pdf" target="_blank" style="color: #d4af37; text-decoration: none;">Official Rules PDF</a>
+        </p>
+    </footer>
 
     <div id="game-over-modal" class="game-over">
         <div class="game-over-content">
@@ -1383,16 +1431,27 @@
             for (let i = 0; i < 4; i++) {
                 if (i < game.torches.length) {
                     const card = game.torches[i];
-                    const el = createCardElement(card);
+                    const el = document.createElement('div');
+                    el.style.width = '40px';
+                    el.style.height = '56px';
+                    el.style.border = '2px solid #8b7355';
+                    el.style.borderRadius = '4px';
+                    el.style.display = 'flex';
+                    el.style.flexDirection = 'column';
+                    el.style.justifyContent = 'center';
+                    el.style.alignItems = 'center';
+                    el.style.background = 'linear-gradient(to bottom right, #f5f1e8 0%, #e8dcc8 100%)';
+                    el.style.color = (card.suit === 'hearts' || card.suit === 'diamonds') ? '#8b0000' : '#000';
+                    el.innerHTML = `<div style="font-size: 1.2rem;">${SUIT_SYMBOLS[card.suit]}</div><div style="font-weight: bold; font-size: 0.8rem;">${card.rank}</div>`;
                     container.appendChild(el);
                 } else {
                     const empty = document.createElement('div');
-                    empty.style.width = '65px';
-                    empty.style.height = '90px';
+                    empty.style.width = '40px';
+                    empty.style.height = '56px';
                     empty.style.border = '1px dashed #8b7355';
-                    empty.style.borderRadius = '6px';
+                    empty.style.borderRadius = '4px';
                     empty.textContent = 'Empty';
-                    empty.style.fontSize = '0.8rem';
+                    empty.style.fontSize = '0.65rem';
                     empty.style.display = 'flex';
                     empty.style.alignItems = 'center';
                     empty.style.justifyContent = 'center';
