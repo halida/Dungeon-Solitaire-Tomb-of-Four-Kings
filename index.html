@@ -1139,7 +1139,6 @@
         function updateButtons() {
             const drawBtn = document.getElementById('draw-card-btn');
             drawBtn.disabled = game.gameStatus !== 'active' ||
-                              (game.currentTurn && game.currentTurn.resolved && game.phase === 'delve') ||
                               (game.currentTurn && game.currentTurn.resolved && game.phase === 'retreat' && checkPhaseComplete());
         }
 
