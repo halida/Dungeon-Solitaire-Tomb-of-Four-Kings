@@ -243,16 +243,40 @@
 
         /* HP card - flipped is damaged */
         .hp-card {
-            width: 25px;
-            height: 35px;
+            width: 28px;
+            height: 40px;
             border: 1px solid #5c4033;
             border-radius: 3px;
             background: linear-gradient(to bottom, #f5f1e8 0%, #e8dcc8 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1px;
+            font-weight: bold;
+            font-size: 0.6rem;
+            color: #8b0000;
         }
 
         .hp-card.flipped {
             background: linear-gradient(to bottom, #5a0000 0%, #3a0000 100%);
             border-color: #8b0000;
+            color: #5a0000;
+        }
+
+        .hp-card .hp-rank {
+            text-align: left;
+            line-height: 1;
+        }
+
+        .hp-card .hp-suit {
+            text-align: center;
+            font-size: 0.8rem;
+            line-height: 1;
+        }
+
+        .hp-card .hp-corner {
+            text-align: right;
+            line-height: 1;
         }
 
         /* Status Area */
@@ -1305,6 +1329,11 @@
             game.hitPoints.forEach(card => {
                 const hpEl = document.createElement('div');
                 hpEl.className = 'hp-card' + (card.flipped ? ' flipped' : '');
+                hpEl.innerHTML = `
+                    <div class="hp-rank">${card.rank}</div>
+                    <div class="hp-suit">♥</div>
+                    <div class="hp-corner">${card.rank}</div>
+                `;
                 container.appendChild(hpEl);
             });
 
