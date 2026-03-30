@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Solitaire - Tests</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        h1 {
+            color: #d4af37;
+            margin-bottom: 10px;
+        }
+
+        .summary {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .summary.pass {
+            border: 2px solid #4caf50;
+        }
+
+        .summary.fail {
+            border: 2px solid #f44336;
+        }
+
+        .summary-text {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .category {
+            background: #2d2d2d;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .category-header {
+            background: #3d3d3d;
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-header:hover {
+            background: #454545;
+        }
+
+        .category-title {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .category-stats {
+            color: #ccc;
+        }
+
+        .category-content {
+            padding: 10px 15px;
+            display: none;
+        }
+
+        .category-content.expanded {
+            display: block;
+        }
+
+        .test {
+            padding: 8px 0;
+            border-bottom: 1px solid #3d3d3d;
+        }
+
+        .test:last-child {
+            border-bottom: none;
+        }
+
+        .test-name {
+            font-weight: 500;
+        }
+
+        .test-pass {
+            color: #4caf50;
+        }
+
+        .test-fail {
+            color: #f44336;
+        }
+
+        .test-error {
+            font-size: 0.9rem;
+            color: #ff9800;
+            margin-top: 5px;
+            padding-left: 20px;
+        }
+
+        .pass-rate {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        #run-tests-btn {
+            padding: 10px 20px;
+            background: #d4af37;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        #run-tests-btn:hover {
+            background: #e5c048;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dungeon Solitaire - Tests</h1>
+    <button id="run-tests-btn" onclick="runAllTests()">Run All Tests</button>
+
+    <div id="summary" class="summary">
+        <div class="summary-text">Click "Run All Tests" to start</div>
+    </div>
+
+    <div id="test-container"></div>
+
+    <script src="tests.js"></script>
+    <script>
+        // Toggle category expansion
+        function toggleCategory(categoryId) {
+            const content = document.getElementById(categoryId);
+            content.classList.toggle('expanded');
+        }
+    </script>
+</body>
+</html>

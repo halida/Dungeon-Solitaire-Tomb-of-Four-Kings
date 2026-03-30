@@ -709,13 +709,19 @@
         // High score storage key
         const HIGH_SCORES_KEY = 'dungeon-solitaire-highscores';
 
-        // Add entry to game log
+        /**
+         * Add entry to game log
+         * @param {string} message - Log message
+         */
         function addLog(message) {
             const timestamp = new Date().toLocaleTimeString();
             game.log.push(`[${timestamp}] ${message}`);
             renderLog();
         }
 
+        /**
+         * Render the game log
+         */
         function renderLog() {
             const container = document.getElementById('game-log');
             container.innerHTML = '';
@@ -730,7 +736,12 @@
             container.scrollTop = 0;
         }
 
-        // Card constructor
+        /**
+         * Card constructor - playing card data
+         * @param {string} suit - Card suit (spades, hearts, diamonds, clubs, joker)
+         * @param {string} rank - Card rank (A, 2-10, J, Q, K, Joker)
+         * @constructor
+         */
         function Card(suit, rank) {
             this.suit = suit;
             this.rank = rank;
@@ -751,6 +762,10 @@
             }
         }
 
+        /**
+         * Turn constructor - a single dungeon turn/room
+         * @constructor
+         */
         function Turn() {
             this.cards = [];
             this.encounter = null;
@@ -758,7 +773,10 @@
             this.escape = false;
         }
 
-        // Create a full deck
+        /**
+         * Create a full shuffled game deck according to rules
+         * @returns {Card[]} Shuffled deck
+         */
         function createDeck() {
             const suits = ['spades', 'hearts', 'diamonds', 'clubs'];
             const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -780,7 +798,11 @@
             return shuffleDeck(deck);
         }
 
-        // Fisher-Yates shuffle
+        /**
+         * Fisher-Yates shuffle algorithm
+         * @param {Card[]} deck - Input deck
+         * @returns {Card[]} Shuffled deck
+         */
         function shuffleDeck(deck) {
             const shuffled = [...deck];
             for (let i = shuffled.length - 1; i > 0; i--) {
@@ -790,7 +812,10 @@
             return shuffled;
         }
 
-        // Create hit point stack (2-10 of hearts, 10 on top)
+        /**
+         * Create hit point stack (2-10 of hearts, 10 on top)
+         * @returns {Card[]} Hit point cards
+         */
         function createHitPoints() {
             const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10'];
             const hp = [];
@@ -801,7 +826,9 @@
             return hp;
         }
 
-        // Start new game
+        /**
+         * Start a new game
+         */
         function newGame() {
             game = {
                 deck: createDeck(),
@@ -836,11 +863,35 @@
         }
 
         // Draw a card from deck
+        /**
+         * Draw a card from the deck
+         * @returns {Card|null} Drawn card or null if deck is empty and game over
+         */
         function drawCard() {
             if (game.deck.length === 0) {
-                // Out of cards - 4th torch on next ace is game over
+                // Check if we have 4 torches and can use scroll
                 if (game.torches.length >= 4) {
-                    gameOver('lost', 'You have run out of cards and all torches are out. You are lost forever in the darkness.');
+                    // Can we use Scroll of Light?
+                    const scrollIndex = game.playerHand.findIndex(c => c.rank === 'Joker');
+                    if (scrollIndex >= 0) {
+                        // Use it immediately
+                        game.playerHand.splice(scrollIndex, 1);
+                        const ace = game.torches.pop();
+                        // Put ace on bottom of deck
+                        game.deck.unshift(ace);
+                        game.scrollUsed = true;
+                        addLog(`Fourth torch while deck empty! Used Scroll of Light - returned ace to bottom of deck, torches now ${game.torches.length}`);
+                        setMessage("Fourth torch! You used your Scroll of Light to return the torch to the bottom of the deck. You're safe for now.");
+                        saveGame();
+                        renderAll();
+                        // Now we have a card in deck again
+                        const card = game.deck.pop();
+                        return card;
+                    } else {
+                        gameOver('lost', 'You have run out of cards and all torches are out. You are lost forever in the darkness.');
+                    }
+                } else {
+                    gameOver('lost', 'You have run out of cards before reaching the exit.');
                 }
                 return null;
             }
@@ -939,6 +990,16 @@
             const card = drawCard();
             if (!card) return;
 
+            processDrawnCard(card);
+            saveGame();
+            renderAll();
+        }
+
+        /**
+         * Process a drawn card for the current turn
+         * @param {Card} card - The drawn card to process
+         */
+        function processDrawnCard(card) {
             game.lastCard = card;
             const cardName = card.rank === 'Joker' ? 'Joker' : `${card.rank}${SUIT_SYMBOLS[card.suit]}`;
             addLog(`${game.phase === 'delve' ? 'Delve' : 'Retreat'} turn ${game.currentTurnIndex + 1}: Drew ${cardName}`);
@@ -946,9 +1007,6 @@
             // Check if card was already handled (ace/jack) - don't add to turn
             const handled = handleSpecialCard(card);
             if (handled) {
-                // Card already consumed by special effect, don't add to turn cards
-                saveGame();
-                renderAll();
                 return;
             }
 
@@ -956,47 +1014,92 @@
 
             // Check if we have an encounter yet
             if (!game.currentTurn.encounter) {
-                // Is this an encounter card? (2-10 of spades, diamonds, clubs)
-                if (isEncounterCard(card)) {
-                    const type = getEncounterType(card);
-                    game.currentTurn.encounter = { type, card };
-
-                    addLog(`Encounter: ${getEncounterName(type)} (value ${card.value})`);
-
-                    // Check for divine favor already in turn
-                    const hasDivine = game.currentTurn.cards.some(c => c.rank === 'Q');
-                    if (hasDivine) {
-                        addLog(`Divine favor already in turn - automatically wins`);
-                        // Divine favor automatically wins
-                        resolveEncounter(true);
-                        return;
-                    }
-
-                    setMessage(`Encounter: ${getEncounterName(type)} (${card.value}). Play from deck or use a skill from your hand.`);
-                } else if (card.rank === 'K') {
-                    addLog(`Found Tomb Hoard (K) - added to potential treasure, draw again`);
-                    // Tomb hoard - keep as treasure, draw another
-                    setMessage(`Found a Tomb Hoard! Draw another card.`);
-                } else if (card.rank === 'Q') {
-                    addLog(`Divine favor (Q) - next encounter will be auto-won`);
-                    // Divine favor before encounter - keep drawing
-                    setMessage(`Divine favor! You will automatically win the next encounter. Keep drawing.`);
-                }
+                processNonEncounterCard(card);
             } else {
                 // We already have an encounter - this is an action card
                 addLog(`Action card ${cardName} against ${game.currentTurn.encounter.type} (value ${card.value} vs ${game.currentTurn.encounter.card.value})`);
                 resolveAction(card);
             }
+        }
 
-            saveGame();
-            renderAll();
+        /**
+         * Process a non-encounter card when no encounter exists yet
+         * @param {Card} card - The non-encounter card to process
+         */
+        function processNonEncounterCard(card) {
+            if (isEncounterCard(card)) {
+                const type = getEncounterType(card);
+                game.currentTurn.encounter = { type, card };
+
+                addLog(`Encounter: ${getEncounterName(type)} (value ${card.value})`);
+
+                // Check for divine favor already in turn
+                const hasDivine = game.currentTurn.cards.some(c => c.rank === 'Q');
+                if (hasDivine) {
+                    addLog(`Divine favor already in turn - automatically wins`);
+                    // Divine favor automatically wins
+                    resolveEncounter(true);
+                    return;
+                }
+
+                setMessage(`Encounter: ${getEncounterName(type)} (${card.value}). Play from deck or use a skill from your hand.`);
+            } else if (card.rank === 'K') {
+                addLog(`Found Tomb Hoard (K) - added to potential treasure, draw again`);
+                // Tomb hoard - keep as treasure, draw another
+                setMessage(`Found a Tomb Hoard! Draw another card.`);
+            } else if (card.rank === 'Q') {
+                addLog(`Divine favor (Q) - next encounter will be auto-won`);
+                // Divine favor before encounter - keep drawing
+                setMessage(`Divine favor! You will automatically win the next encounter. Keep drawing.`);
+            }
+        }
+
+        // Check if card is a number card (2-10)
+        /**
+         * @param {Card} card - Card to check
+         * @returns {boolean} True if card is a number card (2-10)
+         */
+        function isNumberCard(card) {
+            return !isNaN(parseInt(card.rank));
         }
 
         // Check if card is an encounter card (2-10 of spades/diamonds/clubs)
+        /**
+         * @param {Card} card - Card to check
+         * @returns {boolean} True if card is an encounter card
+         */
         function isEncounterCard(card) {
-            const isNumber = !isNaN(parseInt(card.rank));
+            const isNumber = isNumberCard(card);
             const isRightSuit = ['spades', 'diamonds', 'clubs'].includes(card.suit);
             return isNumber && isRightSuit;
+        }
+
+        // Check if card is a treasure card (diamonds 2-10, kings, or joker)
+        /**
+         * @param {Card} card - Card to check
+         * @returns {boolean} True if card is a treasure card
+         */
+        function isTreasureCard(card) {
+            return (card.suit === 'diamonds' && isNumberCard(card)) ||
+                   card.rank === 'K' ||
+                   card.rank === 'Joker';
+        }
+
+        // Check if a skill card is playable against current encounter
+        /**
+         * @param {Card} skill - Skill card from hand
+         * @param {Object} encounter - Current encounter
+         * @returns {boolean} True if skill can be played
+         */
+        function isSkillPlayable(skill, encounter) {
+            if (skill.rank !== 'J') return false;
+
+            if (skill.suit === 'spades' && encounter.type === 'monster') return true;
+            if (skill.suit === 'diamonds' && encounter.type === 'trap') return true;
+            if (skill.suit === 'clubs' && encounter.type === 'door') return true;
+            if (skill.suit === 'hearts') return hasFlippedDamage(); // Can always use if damage taken
+
+            return false;
         }
 
         function getEncounterType(card) {
@@ -1190,7 +1293,6 @@
             if (won) {
                 // Collect treasure
                 collectTreasure();
-                const treasureCount = game.playerHand.length - (game.playerHand.length - (game.delve.length + game.retreat.length)); // rough estimate
                 addLog(`Treasure collected from this turn`);
                 const phaseDone = checkPhaseComplete();
                 if (!phaseDone) {
@@ -1210,17 +1312,7 @@
         function collectTreasure() {
             // Collect: diamonds (any in turn), kings, joker (scroll)
             for (const card of game.currentTurn.cards) {
-                if (card.suit === 'diamonds' && !isNaN(parseInt(card.rank))) {
-                    if (!game.playerHand.includes(card)) {
-                        game.playerHand.push(card);
-                    }
-                }
-                if (card.rank === 'K') {
-                    if (!game.playerHand.includes(card)) {
-                        game.playerHand.push(card);
-                    }
-                }
-                if (card.rank === 'Joker') {
+                if (isTreasureCard(card)) {
                     if (!game.playerHand.includes(card)) {
                         game.playerHand.push(card);
                     }
@@ -1228,15 +1320,11 @@
             }
 
             // If all cards are treasure, leave one behind to mark the turn
-            const allTreasure = game.currentTurn.cards.every(c =>
-                (c.suit === 'diamonds' && !isNaN(parseInt(c.rank))) || c.rank === 'K' || c.rank === 'Joker'
-            );
+            const allTreasure = game.currentTurn.cards.every(c => isTreasureCard(c));
 
             if (allTreasure && game.currentTurn.cards.length > 0) {
-                // Leave the first treasure card behind
-                const firstTreasure = game.currentTurn.cards.find(c =>
-                    (c.suit === 'diamonds' && !isNaN(parseInt(c.rank))) || c.rank === 'K'
-                );
+                // Leave the first non-joker treasure card behind
+                const firstTreasure = game.currentTurn.cards.find(c => isTreasureCard(c) && c.rank !== 'Joker');
                 if (firstTreasure) {
                     const idx = game.playerHand.indexOf(firstTreasure);
                     if (idx >= 0) {
@@ -1300,26 +1388,28 @@
         }
 
         // Check for victory - we've reached the exit
+        /**
+         * Check if player has won by reaching the exit
+         */
         function checkVictory() {
             const score = calculateScore();
-            const fourKings = countKings() === 4;
-            addLog(`VICTORY! Reached exit alive - ${countKings()} kings, ${score.total} points`);
+            const fourKings = score.kings === 4;
+            addLog(`VICTORY! Reached exit alive - ${score.kings} kings, ${score.total} points`);
 
             if (fourKings) {
                 gameOver('won', `You have made it out alive with all four Tomb Hoards! You win the game!`, score);
             } else {
-                gameOver('won', `You have made it out alive with ${countKings()} Tomb Hoards and ${score.total} points!`, score);
+                gameOver('won', `You have made it out alive with ${score.kings} Tomb Hoards and ${score.total} points!`, score);
             }
 
             game.gameStatus = 'won';
         }
 
-        // Count kings in hand
-        function countKings() {
-            return game.playerHand.filter(c => c.rank === 'K').length;
-        }
-
         // Calculate final score
+        /**
+         * Calculate final score from player hand
+         * @returns {Object} Score object with kings count and total points
+         */
         function calculateScore() {
             let total = 0;
             let kings = 0;
@@ -1328,7 +1418,7 @@
                 if (card.rank === 'K') {
                     total += 10;
                     kings++;
-                } else if (card.suit === 'diamonds' && !isNaN(parseInt(card.rank))) {
+                } else if (card.suit === 'diamonds' && isNumberCard(card)) {
                     total += card.value;
                 } else if (card.rank === 'Joker') {
                     total += 6;
@@ -1533,20 +1623,8 @@
                 return;
             }
 
-            const card = document.createElement('div');
-            card.className = `small-card ${game.lastCard.suit}`;
-            if (game.lastCard.rank === 'Joker') {
-                card.innerHTML = `
-                    <div class="rank">Joker</div>
-                    <div class="suit">🃏</div>
-                `;
-            } else {
-                card.innerHTML = `
-                    <div class="rank">${game.lastCard.rank}</div>
-                    <div class="suit">${SUIT_SYMBOLS[game.lastCard.suit]}</div>
-                `;
-            }
-            container.appendChild(card);
+            const cardEl = createCardElement(game.lastCard, CARD_SIZES.SMALL);
+            container.appendChild(cardEl);
         }
 
         function renderTorches() {
@@ -1556,18 +1634,7 @@
             for (let i = 0; i < 4; i++) {
                 if (i < game.torches.length) {
                     const card = game.torches[i];
-                    const el = document.createElement('div');
-                    el.style.width = '40px';
-                    el.style.height = '56px';
-                    el.style.border = '2px solid #8b7355';
-                    el.style.borderRadius = '4px';
-                    el.style.display = 'flex';
-                    el.style.flexDirection = 'column';
-                    el.style.justifyContent = 'center';
-                    el.style.alignItems = 'center';
-                    el.style.background = 'linear-gradient(to bottom right, #f5f1e8 0%, #e8dcc8 100%)';
-                    el.style.color = (card.suit === 'hearts' || card.suit === 'diamonds') ? '#8b0000' : '#000';
-                    el.innerHTML = `<div style="font-size: 1.2rem;">${SUIT_SYMBOLS[card.suit]}</div><div style="font-weight: bold; font-size: 0.8rem;">${card.rank}</div>`;
+                    const el = createCardElement(card, CARD_SIZES.TINY);
                     container.appendChild(el);
                 } else {
                     const empty = document.createElement('div');
@@ -1618,24 +1685,39 @@
             });
         }
 
-        function createTurnElement(turn, index, phase) {
+        /**
+         * Create element for an unresolved (current) turn
+         * @param {Turn} turn - The current turn
+         * @returns {HTMLElement} Turn element
+         */
+        function createUnresolvedTurnElement(turn) {
             const container = document.createElement('div');
             container.className = 'turn-stack';
             container.dataset.expanded = 'false';
 
-            if (!turn.resolved) {
-                // Current turn - show top card
-                if (turn.cards.length > 0) {
-                    const topCard = turn.cards[turn.cards.length - 1];
-                    if (topCard.faceUp) {
-                        const cardEl = createCardElement(topCard);
-                        container.appendChild(cardEl);
-                    } else {
-                        container.classList.add('facedown');
-                    }
+            // Current turn - show top card
+            if (turn.cards.length > 0) {
+                const topCard = turn.cards[turn.cards.length - 1];
+                if (topCard.faceUp) {
+                    const cardEl = createCardElement(topCard);
+                    container.appendChild(cardEl);
+                } else {
+                    container.classList.add('facedown');
                 }
-                return container;
             }
+            return container;
+        }
+
+        /**
+         * Create element for a resolved (completed) turn
+         * @param {Turn} turn - The completed turn
+         * @param {number} index - Turn index
+         * @returns {HTMLElement} Turn element
+         */
+        function createResolvedTurnElement(turn, index) {
+            const container = document.createElement('div');
+            container.className = 'turn-stack';
+            container.dataset.expanded = 'false';
 
             // Resolved turn - click to toggle expansion
             container.classList.add('facedown');
@@ -1656,49 +1738,7 @@
                 container.classList.toggle('expanded');
 
                 if (container.dataset.expanded === 'true') {
-                    // Show all cards
-                    container.innerHTML = '';
-                    container.style.whiteSpace = 'normal';
-                    const turnLabel = document.createElement('div');
-                    turnLabel.className = 'turn-label';
-                    turnLabel.textContent = `Turn ${index + 1} - ${turn.cards.length} card${turn.cards.length !== 1 ? 's' : ''} (click to collapse)`;
-                    container.appendChild(turnLabel);
-
-                    if (turn.encounter) {
-                        // Show encounter info at top (compact, separate line)
-                        const encounterInfo = document.createElement('div');
-                        encounterInfo.className = 'encounter-info';
-                        encounterInfo.style.display = 'block';
-                        encounterInfo.style.width = '100%';
-                        encounterInfo.style.fontSize = '0.8rem';
-                        encounterInfo.style.color = '#d4af37';
-                        encounterInfo.style.marginBottom = '8px';
-                        encounterInfo.style.clear = 'both';
-                        const typeName = getEncounterName(turn.encounter.type);
-                        encounterInfo.innerHTML = `<strong>Encounter:</strong> ${typeName} (value ${turn.encounter.card.value})`;
-                        container.appendChild(encounterInfo);
-                    }
-
-                    turn.cards.forEach(card => {
-                        const cardContainer = document.createElement('div');
-                        cardContainer.style.display = 'inline-block';
-                        cardContainer.style.textAlign = 'center';
-                        cardContainer.style.margin = '0 4px 8px 4px';
-
-                        // Only add type label on the actual encounter card, not on action cards
-                        if (turn.encounter && card === turn.encounter.card) {
-                            const typeLabel = document.createElement('div');
-                            typeLabel.style.fontSize = '0.7rem';
-                            typeLabel.style.color = '#d4af37';
-                            typeLabel.style.marginBottom = '2px';
-                            typeLabel.textContent = getEncounterName(turn.encounter.type);
-                            cardContainer.appendChild(typeLabel);
-                        }
-
-                        const cardEl = createCardElement(card);
-                        cardContainer.appendChild(cardEl);
-                        container.appendChild(cardContainer);
-                    });
+                    renderExpandedTurn(container, turn, index);
                 } else {
                     // Collapse back to original state
                     renderCollapsed();
@@ -1709,6 +1749,65 @@
             container.onclick = toggleExpand;
             renderCollapsed();
             return container;
+        }
+
+        /**
+         * Render expanded view of a resolved turn
+         * @param {HTMLElement} container - Container element
+         * @param {Turn} turn - The turn
+         * @param {number} index - Turn index
+         */
+        function renderExpandedTurn(container, turn, index) {
+            // Show all cards
+            container.innerHTML = '';
+            container.style.whiteSpace = 'normal';
+            const turnLabel = document.createElement('div');
+            turnLabel.className = 'turn-label';
+            turnLabel.textContent = `Turn ${index + 1} - ${turn.cards.length} card${turn.cards.length !== 1 ? 's' : ''} (click to collapse)`;
+            container.appendChild(turnLabel);
+
+            if (turn.encounter) {
+                // Show encounter info at top (compact, separate line)
+                const encounterInfo = document.createElement('div');
+                encounterInfo.className = 'encounter-info';
+                encounterInfo.style.display = 'block';
+                encounterInfo.style.width = '100%';
+                encounterInfo.style.fontSize = '0.8rem';
+                encounterInfo.style.color = '#d4af37';
+                encounterInfo.style.marginBottom = '8px';
+                encounterInfo.style.clear = 'both';
+                const typeName = getEncounterName(turn.encounter.type);
+                encounterInfo.innerHTML = `<strong>Encounter:</strong> ${typeName} (value ${turn.encounter.card.value})`;
+                container.appendChild(encounterInfo);
+            }
+
+            turn.cards.forEach(card => {
+                const cardContainer = document.createElement('div');
+                cardContainer.style.display = 'inline-block';
+                cardContainer.style.textAlign = 'center';
+                cardContainer.style.margin = '0 4px 8px 4px';
+
+                // Only add type label on the actual encounter card, not on action cards
+                if (turn.encounter && card === turn.encounter.card) {
+                    const typeLabel = document.createElement('div');
+                    typeLabel.style.fontSize = '0.7rem';
+                    typeLabel.style.color = '#d4af37';
+                    typeLabel.style.marginBottom = '2px';
+                    typeLabel.textContent = getEncounterName(turn.encounter.type);
+                    cardContainer.appendChild(typeLabel);
+                }
+
+                const cardEl = createCardElement(card);
+                cardContainer.appendChild(cardEl);
+                container.appendChild(cardContainer);
+            });
+        }
+
+        function createTurnElement(turn, index, phase) {
+            if (!turn.resolved) {
+                return createUnresolvedTurnElement(turn);
+            }
+            return createResolvedTurnElement(turn, index);
         }
 
         function renderHitPoints() {
@@ -1732,6 +1831,36 @@
             }
         }
 
+        /**
+         * Render a single card in player hand with appropriate interactivity
+         * @param {Card} card - The card to render
+         * @param {number} index - Index in player hand
+         * @param {boolean} canPlaySkill - Whether skills can be played right now
+         * @returns {HTMLElement} Rendered card element
+         */
+        function renderHandCard(card, index, canPlaySkill) {
+            const cardEl = createCardElement(card, CARD_SIZES.HAND);
+
+            // Check if this is a playable skill for current encounter
+            if (canPlaySkill && isSkillPlayable(card, game.currentTurn.encounter)) {
+                cardEl.classList.add('card-playable');
+                cardEl.style.cursor = 'pointer';
+                cardEl.onclick = () => playFromHand(index);
+            }
+
+            // Can drop treasure to escape monster
+            if (canPlaySkill && game.currentTurn.encounter.type === 'monster' && !game.currentTurn.escape) {
+                // Any treasure (diamonds, K) can be dropped
+                if (isTreasureCard(card) && card.rank !== 'Joker') {
+                    cardEl.classList.add('card-playable');
+                    cardEl.title = 'Drop to escape monster';
+                    cardEl.onclick = () => escapeMonsterDropTreasure(index);
+                }
+            }
+
+            return cardEl;
+        }
+
         function renderPlayerHand() {
             const container = document.getElementById('player-hand');
             container.innerHTML = '';
@@ -1742,36 +1871,7 @@
                                  game.gameStatus === 'active';
 
             game.playerHand.forEach((card, index) => {
-                const cardEl = createCardElement(card, true);
-                cardEl.classList.add('card-in-hand');
-
-                // Check if this is a playable skill for current encounter
-                if (canPlaySkill && card.rank === 'J') {
-                    const encounterType = game.currentTurn.encounter.type;
-                    let canPlay = false;
-
-                    if (card.suit === 'spades' && encounterType === 'monster') canPlay = true;
-                    if (card.suit === 'diamonds' && encounterType === 'trap') canPlay = true;
-                    if (card.suit === 'clubs' && encounterType === 'door') canPlay = true;
-                    if (card.suit === 'hearts') canPlay = hasFlippedDamage(); // can always use if damage taken
-
-                    if (canPlay) {
-                        cardEl.classList.add('card-playable');
-                        cardEl.style.cursor = 'pointer';
-                        cardEl.onclick = () => playFromHand(index);
-                    }
-                }
-
-                // Can drop treasure to escape monster
-                if (canPlaySkill && game.currentTurn.encounter.type === 'monster' && !game.currentTurn.escape) {
-                    // Any treasure (diamonds, K) can be dropped
-                    if ((card.suit === 'diamonds' && !isNaN(parseInt(card.rank))) || card.rank === 'K') {
-                        cardEl.classList.add('card-playable');
-                        cardEl.title = 'Drop to escape monster';
-                        cardEl.onclick = () => escapeMonsterDropTreasure(index);
-                    }
-                }
-
+                const cardEl = renderHandCard(card, index, canPlaySkill);
                 container.appendChild(cardEl);
             });
 
@@ -1805,72 +1905,174 @@
                               (game.currentTurn && game.currentTurn.resolved && game.phase === 'retreat' && checkPhaseComplete());
         }
 
-        // Create a card DOM element
-        function createCardElement(card, isInHand = false) {
+        // Card size variants for createCardElement
+        const CARD_SIZES = {
+            STANDARD: 'standard',  // Normal play card (65x90px)
+            HAND: 'hand',          // Larger for player hand (78x108px)
+            SMALL: 'small',        // Last card display (50x70px)
+            TINY: 'tiny'           // Torch display (40x56px)
+        };
+
+        // Create a card DOM element with specified size
+        /**
+         * @param {Card} card - Card to render
+         * @param {string} size - Card size (from CARD_SIZES)
+         * @returns {HTMLElement} Card element
+         */
+        function createCardElement(card, size = CARD_SIZES.STANDARD) {
             const el = document.createElement('div');
-            const baseClass = `card ${card.suit}`;
-            el.className = baseClass;
+
+            // Base styling based on size
+            switch (size) {
+                case CARD_SIZES.HAND:
+                    el.className = `card ${card.suit} card-in-hand`;
+                    break;
+                case CARD_SIZES.SMALL:
+                    el.className = `small-card ${card.suit}`;
+                    break;
+                case CARD_SIZES.TINY:
+                    el.style.width = '40px';
+                    el.style.height = '56px';
+                    el.style.border = '2px solid #8b7355';
+                    el.style.borderRadius = '4px';
+                    el.style.display = 'flex';
+                    el.style.flexDirection = 'column';
+                    el.style.justifyContent = 'center';
+                    el.style.alignItems = 'center';
+                    el.style.background = 'linear-gradient(to bottom right, #f5f1e8 0%, #e8dcc8 100%)';
+                    el.style.color = (card.suit === 'hearts' || card.suit === 'diamonds') ? '#8b0000' : '#000';
+                    break;
+                default:
+                    el.className = `card ${card.suit}`;
+            }
 
             if (!card.faceUp || (card.rank === 'Joker' && !card.faceUp)) {
-                el.classList.add('facedown');
+                if (size === CARD_SIZES.STANDARD || size === CARD_SIZES.HAND) {
+                    el.classList.add('facedown');
+                }
                 return el;
             }
 
             if (card.rank === 'Joker') {
-                el.innerHTML = `
-                    <div class="rank">Joker</div>
-                    <div class="suit">🃏</div>
-                    <div class="corner">J</div>
-                `;
+                if (size === CARD_SIZES.SMALL) {
+                    el.innerHTML = `
+                        <div class="rank">Joker</div>
+                        <div class="suit">🃏</div>
+                    `;
+                } else if (size === CARD_SIZES.TINY) {
+                    el.innerHTML = `<div style="font-size: 1.2rem;">🃏</div><div style="font-weight: bold; font-size: 0.8rem;">Joker</div>`;
+                } else {
+                    el.innerHTML = `
+                        <div class="rank">Joker</div>
+                        <div class="suit">🃏</div>
+                        <div class="corner">J</div>
+                    `;
+                }
                 return el;
             }
 
-            el.innerHTML = `
-                <div class="rank">${card.rank}</div>
-                <div class="suit">${SUIT_SYMBOLS[card.suit]}</div>
-                <div class="corner">${card.rank}</div>
-            `;
+            if (size === CARD_SIZES.SMALL) {
+                el.innerHTML = `
+                    <div class="rank">${card.rank}</div>
+                    <div class="suit">${SUIT_SYMBOLS[card.suit]}</div>
+                `;
+            } else if (size === CARD_SIZES.TINY) {
+                el.innerHTML = `<div style="font-size: 1.2rem;">${SUIT_SYMBOLS[card.suit]}</div><div style="font-weight: bold; font-size: 0.8rem;">${card.rank}</div>`;
+            } else {
+                el.innerHTML = `
+                    <div class="rank">${card.rank}</div>
+                    <div class="suit">${SUIT_SYMBOLS[card.suit]}</div>
+                    <div class="corner">${card.rank}</div>
+                `;
+            }
 
             return el;
         }
 
-        // Save game to localStorage
+        /**
+         * Save current game state to localStorage
+         */
         function saveGame() {
             try {
                 localStorage.setItem('dungeon-solitaire-save', JSON.stringify(game));
             } catch (e) {
-                // Ignore storage errors
+                console.error('Error saving game to localStorage:', e);
             }
         }
 
+        /**
+         * Clear saved game from localStorage
+         */
         function clearGameSave() {
-            localStorage.removeItem('dungeon-solitaire-save');
+            try {
+                localStorage.removeItem('dungeon-solitaire-save');
+            } catch (e) {
+                console.error('Error clearing saved game:', e);
+            }
+        }
+
+        /**
+         * Restore Card prototypes after loading from JSON
+         * @param {Array} cards - Array of plain card objects
+         */
+        function restoreCardPrototypes(cards) {
+            for (let i = 0; i < cards.length; i++) {
+                Object.setPrototypeOf(cards[i], Card.prototype);
+            }
+        }
+
+        /**
+         * Restore Turn prototypes after loading from JSON
+         * @param {Array} turns - Array of plain turn objects
+         */
+        function restoreTurnPrototypes(turns) {
+            for (let i = 0; i < turns.length; i++) {
+                Object.setPrototypeOf(turns[i], Turn.prototype);
+                // Cards inside turns also need prototype restoration
+                restoreCardPrototypes(turns[i].cards);
+            }
         }
 
         // Load saved game
+        /**
+         * Load saved game from localStorage
+         * @returns {boolean} True if game loaded successfully
+         */
         function loadGame() {
             try {
                 const saved = localStorage.getItem('dungeon-solitaire-save');
                 if (saved) {
                     game = JSON.parse(saved);
+
+                    // Restore all prototypes since JSON.parse doesn't preserve them
+                    restoreCardPrototypes(game.deck);
+                    restoreCardPrototypes(game.discardPile);
+                    restoreCardPrototypes(game.torches);
+                    restoreCardPrototypes(game.hitPoints);
+                    restoreCardPrototypes(game.playerHand);
+                    restoreTurnPrototypes(game.delve);
+                    restoreTurnPrototypes(game.retreat);
+
                     // Adjust startTime if game is still active (preserve elapsed time)
                     if (game.gameStatus === 'active' && game.startTime && !game.endTime) {
-                        const alreadyElapsed = Date.now() - game.startTime;
-                        // Keep track of original elapsed time
+                        // When game was saved, startTime was the original start time
+                        // We need to keep the already elapsed time and set new startTime to now
+                        const now = Date.now();
                         if (!game.elapsedTime) {
                             game.elapsedTime = 0;
                         }
-                        game.elapsedTime += Math.floor(alreadyElapsed / 1000);
-                        game.startTime = Date.now();
+                        // The time from original startTime to when we saved is already accounted for in game.elapsedTime
+                        // So just set new startTime to now
+                        game.startTime = now;
                     }
-                    // Re-hydrate functions if needed
+
                     setMessage(game.message);
                     renderAll();
                     document.getElementById('draw-card-btn').disabled = game.gameStatus !== 'active';
                     return true;
                 }
             } catch (e) {
-                // Ignore
+                console.error('Error loading saved game:', e);
             }
             return false;
         }
