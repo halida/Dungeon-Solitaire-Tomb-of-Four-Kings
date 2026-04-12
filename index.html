@@ -662,6 +662,65 @@
     <script src="game.js"></script>
     <script>
         // Rendering functions that depend on game DOM elements
+
+        /**
+         * Create a DOM element for a card
+         * @param {Card} card - The card to render
+         * @param {string} size - Size variant from CARD_SIZES
+         * @returns {HTMLElement} The card element
+         */
+        function createCardElement(card, size = CARD_SIZES.STANDARD) {
+            const el = document.createElement('div');
+            let className = 'card';
+            let width = 65;
+            let height = 90;
+            let fontSize = 1.0;
+            let suitFontSize = 1.8;
+
+            // Adjust size based on variant
+            if (size === CARD_SIZES.HAND) {
+                className += ' card-in-hand';
+                width = 78;
+                height = 108;
+                fontSize = 1.2;
+                suitFontSize = 2.4;
+            } else if (size === CARD_SIZES.SMALL) {
+                width = 50;
+                height = 70;
+                fontSize = 0.9;
+                suitFontSize = 1.4;
+            } else if (size === CARD_SIZES.TINY) {
+                width = 40;
+                height = 56;
+                fontSize = 0.7;
+                suitFontSize = 1.1;
+            }
+
+            // Add suit class
+            if (card.suit && card.suit !== 'joker') {
+                className += ` ${card.suit}`;
+            }
+
+            if (!card.faceUp) {
+                className += ' facedown';
+            }
+
+            el.className = className;
+            el.style.width = width + 'px';
+            el.style.height = height + 'px';
+
+            if (card.faceUp) {
+                const suitSymbol = card.suit === 'joker' ? '🃏' : SUIT_SYMBOLS[card.suit];
+                el.innerHTML = `
+                    <div class="rank">${card.rank}</div>
+                    <div class="suit">${suitSymbol}</div>
+                    <div class="corner">${card.rank}</div>
+                `;
+            }
+
+            return el;
+        }
+
         function renderAll() {
             renderTorches();
             renderDelve();

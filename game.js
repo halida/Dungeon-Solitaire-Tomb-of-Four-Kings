@@ -706,6 +706,7 @@ function takeDamage(amount) {
             remaining--;
         }
     }
+    checkGameOverAfterDamage();
 }
 
 // Check if we're dead after damage

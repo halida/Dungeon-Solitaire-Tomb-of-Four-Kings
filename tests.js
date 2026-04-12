@@ -93,7 +93,7 @@ function runUnitTests() {
     // Deck Creation
     {
         const deck = createDeck();
-        assertLength(deck, 47, `${category}: Deck has 47 cards (46 + joker)`);
+        assertLength(deck, 44, `${category}: Deck has 44 cards (43 + joker)`);
 
         // Count cards by type
         const aces = deck.filter(c => c.rank === 'A');
@@ -230,7 +230,7 @@ function runIntegrationTests() {
         assertLength(game.hitPoints, 9, `${category}: New game has 9 hit points`);
         const hpHasTwo = game.hitPoints.some(c => c.rank === '2' && c.suit === 'hearts');
         assertTruthy(hpHasTwo, `${category}: Hit points includes 2 of hearts`);
-        assertLength(game.deck, 47, `${category}: New game deck has 47 cards`);
+        assertLength(game.deck, 44, `${category}: New game deck has 44 cards`);
         assertLength(game.playerHand, 0, `${category}: New game empty hand`);
         assertLength(game.torches, 0, `${category}: New game 0 torches`);
     }
@@ -336,7 +336,8 @@ function runIntegrationTests() {
             new Card('joker', 'Joker')
         ];
         collectTreasure();
-        assertLength(game.playerHand, 4, `${category}: All treasure collected to hand`);
+        // All 4 are treasure, so one is left behind to mark the turn → 3 in hand
+        assertLength(game.playerHand, 3, `${category}: All treasure collected to hand (one left behind)`);
 
         // If all treasure, leave one behind
         newGame();
