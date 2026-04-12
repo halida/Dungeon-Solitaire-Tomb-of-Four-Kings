@@ -60,27 +60,10 @@ function assertLength(array, expectedLength, testName) {
 }
 
 /**
- * Load the game code by including it
+ * Game code is already loaded via script tag
  */
 function loadGameCode() {
-    return new Promise((resolve, reject) => {
-        // We need to fetch the index.html and extract the script
-        fetch('index.html')
-            .then(response => response.text())
-            .then(html => {
-                // Extract script content
-                const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
-                if (scriptMatch) {
-                    const scriptCode = scriptMatch[1];
-                    // Execute the script in this context
-                    eval(scriptCode);
-                    resolve();
-                } else {
-                    reject(new Error('Could not find script in index.html'));
-                }
-            })
-            .catch(reject);
-    });
+    return Promise.resolve();
 }
 
 /**
@@ -518,16 +501,26 @@ function renderResults() {
 function runAllTests() {
     testResults = [];
 
-    try {
-        runUnitTests();
-        runIntegrationTests();
-        renderResults();
-    } catch (e) {
-        console.error('Test run failed:', e);
-        const summaryEl = document.getElementById('summary');
-        summaryEl.className = 'summary fail';
-        summaryEl.innerHTML = `<div class="summary-text" style="color: #f44336;">Test run crashed: ${e.message}</div>`;
-    }
+    // Always ensure game code is loaded before running tests
+    loadGameCode()
+        .then(() => {
+            try {
+                runUnitTests();
+                runIntegrationTests();
+                renderResults();
+            } catch (e) {
+                console.error('Test run failed:', e);
+                const summaryEl = document.getElementById('summary');
+                summaryEl.className = 'summary fail';
+                summaryEl.innerHTML = `<div class="summary-text" style="color: #f44336;">Test run crashed: ${e.message}</div>`;
+            }
+        })
+        .catch(e => {
+            console.error('Failed to load game code:', e);
+            const summaryEl = document.getElementById('summary');
+            summaryEl.className = 'summary fail';
+            summaryEl.innerHTML = `<div class="summary-text" style="color: #f44336;">Failed to load game code: ${e.message}</div>`;
+        });
 }
 
 // Auto-run when loaded
